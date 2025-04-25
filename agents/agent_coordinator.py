@@ -32,6 +32,9 @@ from agents.synonym_generator import SynonymGeneratorAgent
 
 #Load in agent helpers
 from agents.helpers import trial_filters
+#from importlib import reload
+#reload(trial_filters)
+
 
 class AgentCoordinator:
     def __init__(self):
@@ -80,35 +83,9 @@ class AgentCoordinator:
         return matching_trials
 
 
-    def find_matching_trials_from_location(self, location):
-        """
-        Query the database for trials matching any of the synonyms,
-        then filter by semantic similarity and sort by distance
-        """
-        # Get user coordinates
-        user_coords = self.geo_processor.get_coordinates(location)
-        
-        # Get recruiting trials from database
-        all_recruiting_trials = self.db_connector.get_recruiting_trials()
-        
-        # Generate embeddings for synonyms
-        synonym_embeddings = self.embedding_processor.embed_texts(synonyms)
-        
-        # Filter trials by semantic similarity to any synonym
-        matching_trials = self.trial_filter.filter_by_semantic_similarity(
-            all_recruiting_trials, 
-            synonym_embeddings,
-            threshold=0.7  # Configurable similarity threshold
-        )
-        
-        # Calculate distance to each trial site and sort
-        trials_with_distance = self.geo_processor.calculate_distances(
-            matching_trials, 
-            user_coords
-        )
-        
-        # Sort by distance
-        sorted_trials = sorted(trials_with_distance, key=lambda x: x['distance'])
+    def find_matching_trials_from_location(self,trials,location):
+
+        sorted_trials = trial_filters.get_sites_sorted_by_distance(trials,location)
         
         return sorted_trials
     
@@ -152,10 +129,10 @@ class AgentCoordinator:
 #Example usage of the AgentCoordinator class
 coordinator = AgentCoordinator()
 #First try synonym generation
-synonyms = coordinator.get_synonyms("Diabetes Mellitus")
+synonyms = coordinator.get_synonyms("Nash")
 #Now get matching trials for the synonyms
 matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
-#Now get matching trials for the location
-matching_trials = coordinator.find_matching_trials_from_location("New York, NY")
-
+#Now get matching trial sites for the input location
+matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,"Ithaca, NY")
+matching_trial_sites
 """
