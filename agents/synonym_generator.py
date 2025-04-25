@@ -99,7 +99,9 @@ class SynonymGeneratorAgent:
 
 """
 #Example usage
-synonyms = SynonymGeneratorAgent.generate_synonyms("Breast Cancer")
+disease="Breast Cancer"
+SynonymGeneratorAgent=SynonymGeneratorAgent()
+synonyms = SynonymGeneratorAgent.generate_synonyms(disease)
 print(synonyms)
 #Output: ['Breast Cancer', 'Mammary Carcinoma', 'Breast Neoplasm', 'Breast Tumor', 'Breast Neoplasms', 'Breast Neoplasm, Malignant', 'Breast Neoplasm, Invasive', 'Invasive Breast Carcinoma', 'Invasive Lobular Carcinoma', 'Invasive Ductal Carcinoma']
 """
