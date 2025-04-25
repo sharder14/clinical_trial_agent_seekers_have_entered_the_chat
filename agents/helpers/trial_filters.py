@@ -92,7 +92,7 @@ def generate_random_string(length=12):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choices(chars, k=length))
 
-print(generate_random_string())
+#print(generate_random_string())
 
 def get_sites_sorted_by_distance(trials, user_location):
     #Now get sites associated with all of the trials
