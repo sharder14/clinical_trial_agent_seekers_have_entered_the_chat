@@ -175,7 +175,7 @@ class KnowledgeCuratorAgent:
                         },
                         "related_links": {
                             "type": "array",
-                            "description": "A list of the most essential and patient-useful links found in the page, each with a description of what the link is for and where it comes from.",
+                            "description": "A list of the most essential and patient-useful links found in the page, each with a description of what the link is for and where it comes from. Pay special attention that the links provided are the exact url found in the content",
                             "items": {
                                 "type": "object",
                                 "properties": {

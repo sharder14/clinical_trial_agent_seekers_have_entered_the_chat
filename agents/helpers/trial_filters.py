@@ -123,3 +123,64 @@ def get_sites_sorted_by_distance(trials, user_location):
     sites = sites.sort_values(by='distance')
     sites.reset_index(drop=True, inplace=True)
     return sites
+
+
+#Get relevent tables for explaining trial
+
+def get_trial_details(study_site_pair):
+    study_details_sql=f"""
+    SELECT * from studies
+    WHERE nct_id = '{study_site_pair['nct_id']}'
+    """
+    study_details=sql_util.get_table(study_details_sql)
+
+    eligibilities_sql=f"""
+    SELECT * from eligibilities
+    WHERE nct_id = '{study_site_pair['nct_id']}'
+    """
+    eligibilities=sql_util.get_table(eligibilities_sql)
+
+    designs_sql=f"""
+    SELECT * from designs
+    WHERE nct_id = '{study_site_pair['nct_id']}'
+    """
+    designs=sql_util.get_table(designs_sql)
+
+    design_groups_sql=f"""
+    SELECT * from design_groups
+    WHERE nct_id = '{study_site_pair['nct_id']}'
+    """
+    design_groups=sql_util.get_table(design_groups_sql)
+
+    interventions_sql=f"""
+    SELECT * from interventions
+    WHERE nct_id = '{study_site_pair['nct_id']}'
+    """
+    interventions=sql_util.get_table(interventions_sql)
+
+    design_outcomes_sql=f"""
+    select * from design_outcomes
+    where nct_id= '{study_site_pair['nct_id']}'
+    and outcome_type='primary'
+    """
+    design_outcomes=sql_util.get_table(design_outcomes_sql)
+
+    central_contacts_sql=f"""
+    SELECT * from central_contacts
+    WHERE nct_id = '{study_site_pair['nct_id']}'
+    """
+    central_contacts=sql_util.get_table(central_contacts_sql)
+
+
+    out={
+           'study_details':study_details,
+           'eligibilities':eligibilities,
+           'designs':designs,
+           'design_groups':design_groups,
+           'interventions':interventions,
+           'design_outcomes':design_outcomes,
+           'central_contacts':central_contacts
+    }
+
+
+    return out
