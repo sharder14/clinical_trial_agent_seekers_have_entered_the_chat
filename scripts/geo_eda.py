@@ -15,6 +15,7 @@ os.chdir(base_dir)
 sys.path.append(base_dir)
 #File specific imports
 import pandas as pd
+import numpy as np
 from utils import sql_util, openai_util
 import json
 from agents.agent_coordinator import AgentCoordinator

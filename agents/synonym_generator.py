@@ -16,17 +16,15 @@ from utils import sql_util, openai_util
 import json
 
 
-model_name = "gpt-4o-mini"
-deployment = "gpt-4o-mini"
+azure_model_name = "gpt-4o-mini"
+azure_deployment = "gpt-4o-mini"
+#github_model_name = "openai/gpt-4o-mini"
 
 class SynonymGeneratorAgent:
     def __init__(self):
         """
         Initialize the SynonymGeneratorAgent.
         """
-        self.client = openai_util.get_azure_openai_client()
-        self.model_name = model_name
-        self.deployment = deployment
 
     def generate_synonyms(self,disease_description):
         """
@@ -34,8 +32,6 @@ class SynonymGeneratorAgent:
         """
         # Get the OpenAI client
         client = openai_util.get_azure_openai_client()
-
-
 
         # Define the messages
         system_message = """
@@ -78,13 +74,13 @@ class SynonymGeneratorAgent:
 
         # Make the API call
         response = client.chat.completions.create(
-        messages=messages,
-            max_tokens=4096,
-            temperature=1.0,
-            top_p=1.0,
-            functions=functions,
-            function_call={"name": "generate_disease_synonyms"},
-            model=deployment
+            messages=messages,
+                max_tokens=4096,
+                temperature=1.0,
+                top_p=1.0,
+                functions=functions,
+                function_call={"name": "generate_disease_synonyms"},
+                model=azure_deployment
         )
 
         # Extract the function call and parse the arguments
