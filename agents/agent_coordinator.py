@@ -29,6 +29,7 @@ import numpy as np
 
 #Load in specialized agents
 from agents.synonym_generator import SynonymGeneratorAgent
+from agents.trial_explainer import TrialExplainerAgent
 
 #Load in agent helpers
 from agents.helpers import trial_filters
@@ -40,7 +41,7 @@ class AgentCoordinator:
     def __init__(self):
         # Initialize the specialized agents
         self.synonym_agent = SynonymGeneratorAgent()
-        #self.explainer_agent = TrialExplainerAgent()
+        self.explainer_agent = TrialExplainerAgent()
         #self.knowledge_agent = KnowledgeCuratorAgent()
                 
         
@@ -95,18 +96,16 @@ class AgentCoordinator:
         """
         return self.trial_filter.apply_filters(trials, filters)
     
-    def get_trial_explanation(self, trial_id):
+    def get_trial_explanation(self, ssp):
         """
         Get simplified explanation of a specific trial
         """
 
-        # Get trial data
-        trial_data = self.db_connector.get_trial_by_id(trial_id)
-        
-        # Generate explanation
-        explanation = self.explainer_agent.explain_trial(trial_data)
-               
-        return explanation
+        # Get simplified trial explanation data from study site pair
+        trial_data = self.explainer_agent.explain_trial(ssp)
+
+
+        return trial_data
     
     def get_knowledge_resources(self, condition, synonyms=None):
         """
@@ -135,4 +134,11 @@ matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
 #Now get matching trial sites for the input location
 matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,"Ithaca, NY")
 matching_trial_sites
+#Grab the first result as our study_site_pair
+study_site_pair=matching_trial_sites.loc[0]
+study_data=coordinator.get_trial_explanation(study_site_pair)
+study_data
+#Now get knowledge resources...
+
+
 """
