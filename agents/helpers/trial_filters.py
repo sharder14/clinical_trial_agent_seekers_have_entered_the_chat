@@ -116,6 +116,10 @@ def get_sites_sorted_by_distance(trials, user_location):
 
     # Geocode a location name to lat/lon
     location = geolocator.geocode(user_location)
+    
+    # Check if geocoding was successful
+    if location is None:
+        raise ValueError(f"Could not geocode the location: '{user_location}'. Please try a different format or a more general location like 'City, State'.")
 
     print(f"Address: {location.address}")
     print(f"Latitude: {location.latitude}, Longitude: {location.longitude}")
