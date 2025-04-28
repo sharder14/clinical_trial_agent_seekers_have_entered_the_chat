@@ -27,7 +27,7 @@ drug="Resmetirom"
 url='https://dailymed.nlm.nih.gov/dailymed/search.cfm?labeltype=all&query='+drug+'&audience=consumer'
 
 #Search for the condition on MedlinePlus
-condition="Diabetes Mellitus"
+condition="NASH"
 #Search url
 url='https://vsearch.nlm.nih.gov/vivisimo/cgi-bin/query-meta?v%3Aproject=medlineplus&v%3Asources=medlineplus-bundle&query='+condition
 #Put headers in for a more realistic request
@@ -102,19 +102,6 @@ for elem in main_content.find_all(["h1", "h2", "h3", "p", "ul", "ol"]):
         cleaned_text += f"{text}\n\n"
 
 cleaned_text
-
-
-#Make it look pretty
-soup = BeautifulSoup(content, 'html.parser')
-#Show the content of the page
-print(soup.prettify())
-
-#Get all the info from the section  id="topsum_section"
-topsum_section = soup.find(id="topsum_section")
-#Extract the text from the topsum_section
-topsum_text = topsum_section.get_text(strip=True, separator=' ')
-topsum_text
-
 
 
 class KnowledgeCuratorAgent:
@@ -225,3 +212,7 @@ output = agent.curate_medical_page(cleaned_text)
 #Now get output
 output.get('summary', {})
 output.get('related_links', [])
+
+#Now about the drug thats being investigated...
+
+

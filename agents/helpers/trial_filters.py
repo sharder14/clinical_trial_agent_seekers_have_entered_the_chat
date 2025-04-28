@@ -45,33 +45,35 @@ def get_relevant_studies_from_conditions(conditions, similarity_score_threshold=
     """
     #Get the embeddings for the synonyms
     synonym_embeddings = model.encode(conditions, device=device)
-    synonym_embeddings
 
     #Get the cosine similarity between the synonyms and the condition embeddings
     cosine_similarities = cosine_similarity(synonym_embeddings, condition_embeddings)
-    cosine_similarities
 
     inds,vals=np.argsort(cosine_similarities, axis=1)[:, ::-1],np.sort(cosine_similarities, axis=1)[:, ::-1]
-    vals
-    inds
 
     #Write vals and inds to pandas dataframe
     similarity_df=pd.DataFrame({'condition_ind':inds.flatten(),'similarity':vals.flatten()})
     similarity_df.sort_values('similarity', ascending=False, inplace=True)
     similarity_df=similarity_df.reset_index(drop=True)
-    similarity_df
 
     #Subset similarity df to only those studies that have similarity >=similarity_score_threshold
     similarity_df=similarity_df[similarity_df['similarity']>=similarity_score_threshold].reset_index(drop=True)
-    similarity_df
     #Now we want to get the nct_ids for the conditions that are similar to the synonyms
     similarity_df['nct_ids'] = similarity_df['condition_ind'].apply(lambda x: conditions_df.iloc[x]['nct_ids'])
-    similarity_df
 
     #Now expand the nct_ids column out so that there is one row per condition_ind, nct_id, and similarity
     similarity_df = similarity_df.explode('nct_ids').reset_index(drop=True)
     #Now drop duplicates on NCT_ID
     relevant_trials_df = similarity_df.drop_duplicates(subset=['nct_ids'], keep='first').reset_index(drop=True)
+    
+    #Only return studies that are active
+    active_studies=sql_util.get_table("""
+        select nct_id from aact.ctgov.studies s  
+        where overall_status in ('ENROLLING_BY_INVITATION','NOT_YET_RECRUITING','RECRUITING')
+    """)
+
+    relevant_trials_df=relevant_trials_df[relevant_trials_df['nct_ids'].isin(active_studies['nct_id'])].reset_index(drop=True)
+
     return relevant_trials_df
 
 
@@ -103,6 +105,7 @@ def get_sites_sorted_by_distance(trials, user_location):
     site_sql=f"""
     SELECT * from facilities
     WHERE nct_id IN {matching_nct_ids}
+    and status in ('ENROLLING_BY_INVITATION','NOT_YET_RECRUITING','RECRUITING')
     """ 
     sites=sql_util.get_table(site_sql)
     sites
@@ -126,6 +129,19 @@ def get_sites_sorted_by_distance(trials, user_location):
 
     sites = sites.sort_values(by='distance')
     sites.reset_index(drop=True, inplace=True)
+
+    #Now get relevant study details per
+    
+    study_details_sql=f"""
+    SELECT * from studies
+    WHERE nct_id IN {matching_nct_ids}
+    """ 
+    study_details=sql_util.get_table(study_details_sql)
+    study_details
+
+    #Merge to get proper columns
+    sites=sites.merge(study_details[['nct_id','phase','study_type','overall_status']],on='nct_id')
+
     return sites
 
 

@@ -90,11 +90,6 @@ class AgentCoordinator:
         
         return sorted_trials
     
-    def apply_filters(self, trials, filters):
-        """
-        Apply additional filters specified by the user
-        """
-        return self.trial_filter.apply_filters(trials, filters)
     
     def get_trial_explanation(self, ssp):
         """
@@ -128,11 +123,13 @@ class AgentCoordinator:
 #Example usage of the AgentCoordinator class
 coordinator = AgentCoordinator()
 #First try synonym generation
-synonyms = coordinator.get_synonyms("Nash")
+condition="Nash"
+synonyms = coordinator.get_synonyms(condition)
 #Now get matching trials for the synonyms
 matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
 #Now get matching trial sites for the input location
-matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,"Ithaca, NY")
+location="Levittown, PA"
+matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,location)
 matching_trial_sites
 #Grab the first result as our study_site_pair
 study_site_pair=matching_trial_sites.loc[0]
