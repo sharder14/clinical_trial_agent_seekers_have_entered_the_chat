@@ -112,6 +112,10 @@ class AgentCoordinator:
                 
         return condition_md,drug_md
     
+    def parse_age_string(self, age_string):
+        age = trial_filters.parse_age(age_string)
+        return age
+    
 
 
 

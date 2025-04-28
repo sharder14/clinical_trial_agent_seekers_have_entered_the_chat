@@ -21,6 +21,7 @@ import torch
 from geopy.geocoders import Nominatim
 import random
 import string
+import re
 
 # Check if GPU is available
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -202,5 +203,20 @@ def get_trial_details(study_site_pair):
            'central_contacts':central_contacts
     }
 
+    
+
 
     return out
+
+# Helper function to parse age strings into numeric values
+def parse_age(age_string):
+    if pd.isna(age_string) or not age_string:
+        return None
+    try:
+        # Extract numeric part from strings like "18 Years" or "N/A"
+        numeric_part = re.search(r'(\d+)', age_string)
+        if numeric_part:
+            return int(numeric_part.group(1))
+        return None
+    except:
+        return None
