@@ -30,9 +30,11 @@ import numpy as np
 #Load in specialized agents
 from agents.synonym_generator import SynonymGeneratorAgent
 from agents.trial_explainer import TrialExplainerAgent
+from agents.knowledge_curator import KnowledgeCuratorAgent
 
 #Load in agent helpers
 from agents.helpers import trial_filters
+from IPython.display import display, Markdown
 #from importlib import reload
 #reload(trial_filters)
 
@@ -42,7 +44,7 @@ class AgentCoordinator:
         # Initialize the specialized agents
         self.synonym_agent = SynonymGeneratorAgent()
         self.explainer_agent = TrialExplainerAgent()
-        #self.knowledge_agent = KnowledgeCuratorAgent()
+        self.knowledge_agent = KnowledgeCuratorAgent()
                 
         
     def process_search_request(self, condition, location, filters=None):
@@ -99,22 +101,16 @@ class AgentCoordinator:
         # Get simplified trial explanation data from study site pair
         trial_data = self.explainer_agent.explain_trial(ssp)
 
+        trial_md=self.explainer_agent.generate_trial_markdown(trial_data)
 
-        return trial_data
+        return trial_data,trial_md
     
-    def get_knowledge_resources(self, condition, synonyms=None):
-        """
-        Get educational resources for a condition
-        """
-        # Use provided synonyms or generate them
-        if synonyms is None:
-            synonyms = self.generate_synonyms(condition)
-            
-        
-        # Gather knowledge resources
-        resources = self.knowledge_agent.curate_resources(condition, synonyms)
+    def get_knowledge_resources(self, condition, trial_about):
+
+        condition_md=self.knowledge_agent.curate_medical_page(condition)
+        drug_md = self.knowledge_agent.generate_drug_markdown_from_trial_about(trial_about)
                 
-        return resources
+        return condition_md,drug_md
     
 
 
@@ -123,19 +119,21 @@ class AgentCoordinator:
 #Example usage of the AgentCoordinator class
 coordinator = AgentCoordinator()
 #First try synonym generation
-condition="Nash"
+condition="MS"
 synonyms = coordinator.get_synonyms(condition)
 #Now get matching trials for the synonyms
 matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
 #Now get matching trial sites for the input location
-location="Levittown, PA"
+location="Allentown, PA"
 matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,location)
 matching_trial_sites
 #Grab the first result as our study_site_pair
-study_site_pair=matching_trial_sites.loc[0]
-study_data=coordinator.get_trial_explanation(study_site_pair)
+study_site_pair=matching_trial_sites.loc[1]
+study_data,study_md=coordinator.get_trial_explanation(study_site_pair)
 study_data
+display(Markdown(study_md))
 #Now get knowledge resources...
-
-
+condition_md, drug_md=coordinator.get_knowledge_resources(condition,study_data['about'])
+display(Markdown(condition_md))
+display(Markdown(drug_md))
 """

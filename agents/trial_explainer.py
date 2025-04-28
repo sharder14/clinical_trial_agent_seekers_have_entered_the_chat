@@ -190,6 +190,66 @@ class TrialExplainerAgent:
         return out 
     
 
+    def generate_trial_markdown(self,trial_data) -> str:
+        """Generate patient-friendly Markdown from the new structured trial output."""
+        md = []
+
+        # Title and trial link
+        title_info = trial_data.get("title", {})
+        if title_info.get("trial_name"):
+            md.append(f"# 🧪 {title_info['trial_name']}\n")
+        if title_info.get("trial_link"):
+            md.append(f"[View full study details 🔗]({title_info['trial_link']})\n")
+
+        # About section
+        if trial_data.get("about"):
+            md.append("\n## 📋 What is this study about?\n")
+            md.append(f"{trial_data['about']}\n")
+
+        # Who can join
+        who_info = trial_data.get("who", {})
+        if who_info:
+            md.append("\n## 👥 Who can join this study?\n")
+            inclusions = who_info.get("inclusion_criteria", [])
+            exclusions = who_info.get("exclusion_criteria", [])
+
+            if inclusions:
+                md.append("\n**✅ You may be eligible if:**\n")
+                for item in inclusions:
+                    md.append(f"- {item}")
+
+            if exclusions:
+                md.append("\n\n**🚫 You may NOT be eligible if:**\n")
+                for item in exclusions:
+                    md.append(f"- {item}")
+
+        # What happens in the study
+        if trial_data.get("what"):
+            md.append("\n\n## 🛠️ What happens in this study?\n")
+            md.append(f"{trial_data['what']}\n")
+
+        # Contacts
+        contact_info = trial_data.get("contacts", {})
+        if contact_info:
+            md.append("\n## 📞 Who to contact\n")
+
+            site = contact_info.get("site_details", {})
+            if site:
+                md.append(f"**Site:** {site.get('site_name', '')}\n")
+                md.append(f"**Location:** {site.get('city', '')}, {site.get('state', '')} {site.get('zip', '')}\n")
+
+            contact = contact_info.get("contact_details", {})
+            if contact:
+                md.append(f"\n**Contact Name:** {contact.get('contact_name', '')}\n")
+                md.append(f"**Phone:** {contact.get('contact_phone', '')}\n")
+                md.append(f"**Email:** {contact.get('contact_email', '')}\n")
+
+        return "\n".join(md).strip()
+
+
+
+    
+
 #Example usage
 """
 TrialExplainerAgent=TrialExplainerAgent()
