@@ -1,7 +1,29 @@
 """
-Streamlit app for the front end of the clinical trial search tool with dropdown filtering,
-distance slider, properly highlighted closest trials, and knowledge hub.
+Streamlit app for the front end of the clinical trial search tool.
+
+1. Search page where user can input a disease name and location.
+2. Display results
+    - Top of the page filters for phase, age, and recruitment status etc...
+    - Main part of the page shows map with sites/trial asssiated
+    - Bottom of page shows table with trials and their simple details
+    - Trials are clickable to get more details either from pop up in map or from 
+        table below
+3. Study details page where user can see all the details of a specific trial
+    Example of ctgov full study details page:
+    https://clinicaltrials.gov/study/NCT05500222
+
+    - What the trial is actually studying
+    - Who can participate (eligibility criteria)
+    - What participating would involve
+    - The potential benefits and risks
+
+    - ALso include contact information for the study team and a link to the full study page on clinicaltrials.gov
+
+4. Within Study Details we want a tab for knowledge hub 
+       this will show all of the links and then below a section
+       that we will output LLM generated summaries of the links
 """
+
 
 import os
 import streamlit as st
@@ -42,7 +64,7 @@ try:
     if 'has_searched' not in st.session_state:
         st.session_state.has_searched = False
     if 'max_distance' not in st.session_state:
-        st.session_state.max_distance = 250  # Default maximum distance
+        st.session_state.max_distance = 250 
 
     # Create columns for the search inputs
     col1, col2 = st.columns(2)
@@ -104,6 +126,29 @@ try:
                     if not matching_trials.empty:
                         try:
                             sites = coordinator.find_matching_trials_from_location(matching_trials, location)
+                            
+                            # Add age information to the sites dataframe
+                            nct_ids = tuple(sites['nct_id'].unique().tolist())
+                            if nct_ids:
+                                # Fetch eligibility info for these trials
+                                eligibility_sql = f"""
+                                SELECT nct_id, minimum_age, maximum_age from eligibilities
+                                WHERE nct_id IN {nct_ids}
+                                """
+                                from utils import sql_util
+                                eligibility_data = sql_util.get_table(eligibility_sql)
+                                
+                                # Parse age strings to numbers
+                                eligibility_data['min_age_value'] = eligibility_data['minimum_age'].apply(coordinator.parse_age_string)
+                                eligibility_data['max_age_value'] = eligibility_data['maximum_age'].apply(coordinator.parse_age_string)
+                                
+                                # Merge with sites dataframe
+                                sites = sites.merge(
+                                    eligibility_data[['nct_id', 'minimum_age', 'maximum_age', 'min_age_value', 'max_age_value']], 
+                                    on='nct_id', 
+                                    how='left'
+                                )
+                            
                             st.session_state.sites = sites
                             st.session_state.filtered_sites = sites.copy()
                             st.session_state.has_searched = True
@@ -181,17 +226,33 @@ try:
             if 'phase' in sites.columns:
                 # Get unique values and clean them
                 phases = sites['phase'].unique().tolist()
+                
                 # Sort phases - put N/A last, otherwise numerical order
-                phases = sorted([p for p in phases if p != 'N/A']) + ['N/A']  # Put N/A at the end
+                phases = sorted([p for p in phases if p != 'N/A']) + ['N/A'] 
                 
                 selected_phase = st.selectbox(
                     "Phase:",
                     options=['All Phases'] + phases,
                     index=0,
-                    help="Select trial phase to display"
+                    help="Select trial phase to display",
+                    key="phase_dropdown"
                 )
             else:
                 selected_phase = 'All Phases'
+                
+            # Min Age filter - dropdown
+            if 'minimum_age' in sites.columns:
+                # Get unique minimum ages
+                min_ages = sites['minimum_age'].dropna().unique().tolist()
+                selected_min_age = st.selectbox(
+                    "Minimum Age:",
+                    options=['All'] + min_ages,
+                    index=0,
+                    help="Filter by minimum age requirement",
+                    key="min_age_dropdown"
+                )
+            else:
+                selected_min_age = 'All'
                 
         with filter_col2:
             # Gender filter - dropdown
@@ -201,7 +262,8 @@ try:
                     "Sex:",
                     options=['All'] + genders,
                     index=0,
-                    help="Filter by participant sex eligibility"
+                    help="Filter by participant sex eligibility",
+                    key="gender_dropdown"
                 )
             else:
                 selected_gender = 'All'
@@ -213,7 +275,8 @@ try:
                     "Study Type:",
                     options=['All Types'] + study_types,
                     index=0,
-                    help="Select study type to display"
+                    help="Select study type to display",
+                    key="study_type_dropdown"
                 )
             else:
                 selected_study_type = 'All Types'
@@ -226,10 +289,25 @@ try:
                     "Recruitment Status:",
                     options=['All Statuses'] + statuses,
                     index=0,
-                    help="Select recruitment status to display"
+                    help="Select recruitment status to display",
+                    key="status_dropdown"
                 )
             else:
                 selected_status = 'All Statuses'
+            
+            # Max Age filter - dropdown
+            if 'maximum_age' in sites.columns:
+                # Get unique maximum ages
+                max_ages = sites['maximum_age'].dropna().unique().tolist()
+                selected_max_age = st.selectbox(
+                    "Maximum Age:",
+                    options=['All'] + max_ages,
+                    index=0,
+                    help="Filter by maximum age requirement",
+                    key="max_age_dropdown"
+                )
+            else:
+                selected_max_age = 'All'
             
             # Add filter button for a cleaner experience
             filter_clicked = st.button("Apply Filters", key="filter_button")
@@ -242,6 +320,14 @@ try:
             # Apply distance filter (highest priority)
             if 'distance' in filtered_sites.columns:
                 filtered_sites = filtered_sites[filtered_sites['distance'] <= max_distance]
+            
+            # Apply min age filter
+            if selected_min_age != 'All' and 'minimum_age' in filtered_sites.columns:
+                filtered_sites = filtered_sites[filtered_sites['minimum_age'] == selected_min_age]
+            
+            # Apply max age filter
+            if selected_max_age != 'All' and 'maximum_age' in filtered_sites.columns:
+                filtered_sites = filtered_sites[filtered_sites['maximum_age'] == selected_max_age]
             
             # Apply phase filter
             if selected_phase != 'All Phases' and 'phase' in filtered_sites.columns:
@@ -339,7 +425,13 @@ try:
                     marker_color = 'green' if is_closest else 'blue'
                     marker_icon = folium.Icon(color=marker_color, icon='plus' if is_closest else 'info-sign')
                     
-                    # Create popup content
+                    # Create popup content with age information
+                    age_range = ""
+                    if 'minimum_age' in site and 'maximum_age' in site:
+                        min_age = site['minimum_age'] if pd.notna(site['minimum_age']) else "Not specified"
+                        max_age = site['maximum_age'] if pd.notna(site['maximum_age']) else "Not specified"
+                        age_range = f"<strong>Age Range:</strong> {min_age} to {max_age}<br>"
+                    
                     popup_html = f"""
                     <div style="width: 300px">
                         <h3>{site['name'] if 'name' in site and pd.notna(site['name']) else 'Clinical Trial Site'}</h3>
@@ -347,6 +439,7 @@ try:
                             <strong>Address:</strong> {site['city'] if 'city' in site and pd.notna(site['city']) else ''}, {site['state'] if 'state' in site and pd.notna(site['state']) else ''}<br>
                             <strong>Distance:</strong> {distance_value:.1f} miles<br>
                             <strong>Trial ID:</strong> {site['nct_id'] if 'nct_id' in site and pd.notna(site['nct_id']) else 'N/A'}<br>
+                            {age_range}
                             <strong>Status:</strong> {site['overall_status'] if 'overall_status' in site and pd.notna(site['overall_status']) else 'Unknown'}<br>
                             <strong>Phase:</strong> {site['phase'] if 'phase' in site and pd.notna(site['phase']) else 'N/A'}
                         </p>
@@ -393,6 +486,12 @@ try:
                 distance_str = "0.0"
                 
             st.success(f"The closest trial site is {site_name} in {site_city}, {site_state} ({distance_str} miles away)")
+            
+            # Display age range for the closest site if available
+            if 'minimum_age' in closest_site and 'maximum_age' in closest_site:
+                min_age = closest_site['minimum_age'] if pd.notna(closest_site['minimum_age']) else "Not specified"
+                max_age = closest_site['maximum_age'] if pd.notna(closest_site['maximum_age']) else "Not specified"
+                st.info(f"Age eligibility range: {min_age} to {max_age}")
             
             # Count total sites
             total_sites = len(filtered_sites)
@@ -450,7 +549,9 @@ try:
             'distance': 'Distance (miles)',
             'phase': 'Phase',
             'overall_status': 'Status',
-            'study_type': 'Study Type'
+            'study_type': 'Study Type',
+            'minimum_age': 'Min Age',
+            'maximum_age': 'Max Age'
         }
         
         for col, new_name in potential_columns.items():
@@ -502,7 +603,7 @@ try:
     3. Displays results sorted by distance from your location
     4. Provides patient-friendly summaries of clinical trials
     5. Offers educational resources about medical conditions and treatments
-    6. Allows filtering by distance, phase, study type, sex, and more
+    6. Allows filtering by distance, age, phase, study type, sex, and more
     """)
 
 except Exception as e:
