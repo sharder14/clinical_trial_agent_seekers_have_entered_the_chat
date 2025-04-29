@@ -112,6 +112,18 @@ class AgentCoordinator:
                 
         return condition_md,drug_md
     
+    def get_condition_md(self, condition):
+        condition_md=self.knowledge_agent.curate_medical_page(condition)
+        return condition_md
+
+    def get_drug_md(self, trial_about):
+        drug_md = self.knowledge_agent.generate_drug_markdown_from_trial_about(trial_about)
+                
+        return drug_md
+    
+
+
+
     def parse_age_string(self, age_string):
         age = trial_filters.parse_age(age_string)
         return age
@@ -131,13 +143,20 @@ matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
 location="Allentown, PA"
 matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,location)
 matching_trial_sites
+#Get condition md one once it'll persist over all studies
+condition_md=coordinator.get_condition_md(condition)
+display(Markdown(condition_md))
+
+
+#Now users can click a site to drill into that study...
+
 #Grab the first result as our study_site_pair
 study_site_pair=matching_trial_sites.loc[1]
 study_data,study_md=coordinator.get_trial_explanation(study_site_pair)
 study_data
 display(Markdown(study_md))
-#Now get knowledge resources...
-condition_md, drug_md=coordinator.get_knowledge_resources(condition,study_data['about'])
-display(Markdown(condition_md))
+#WE ALREADY HAVE THE CONDITION MARKDOWN FROM ABOVE DONT NEED TO REGNEERATE
+#Now get DRUG MD
+drug_md=coordinator.get_drug_md(study_data['about'])
 display(Markdown(drug_md))
 """
