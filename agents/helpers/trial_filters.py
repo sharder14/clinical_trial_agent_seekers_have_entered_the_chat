@@ -97,19 +97,21 @@ def generate_random_string(length=12):
 
 #print(generate_random_string())
 
-def get_sites_sorted_by_distance(trials, user_location):
+def get_sites_sorted_by_distance(trials, user_location, max_distance=250):
     #Now get sites associated with all of the trials
     matching_nct_ids = trials['nct_ids'].unique().tolist()
-    #Make them a tuple so we can use them in the sql query
+
+    if not matching_nct_ids:
+        return pd.DataFrame()
+
     matching_nct_ids = tuple(matching_nct_ids)
 
-    site_sql=f"""
+    site_sql = f"""
     SELECT * from facilities
     WHERE nct_id IN {matching_nct_ids}
     and status in ('ENROLLING_BY_INVITATION','NOT_YET_RECRUITING','RECRUITING')
     """ 
-    sites=sql_util.get_table(site_sql)
-    sites
+    sites = sql_util.get_table(site_sql)
 
     # Create geolocator instance
     user_agent_name=generate_random_string()    
@@ -127,6 +129,11 @@ def get_sites_sorted_by_distance(trials, user_location):
 
     # Calculate distances
     sites['distance'] = haversine(location.latitude, location.longitude, sites['latitude'], sites['longitude'])
+
+    # Filter by distance and limit to 100 closest
+    sites = sites[sites['distance'] <= max_distance]
+    sites = sites.sort_values(by='distance').head(100).reset_index(drop=True)
+
 
     # Drop rows where distance could not be computed
     sites = sites.dropna(subset=['distance'])
@@ -253,23 +260,26 @@ def determine_age_groups(min_age, max_age):
     
     # Child: 0-17
     if min_age_val <= 17 and max_age_val >= 0:
-        groups.append("Child")
+        groups.append("Child: 0-17")
     
-    # Adult: 18-65
+    # Adult: 18-64
     if min_age_val <= 65 and max_age_val >= 18:
-        groups.append("Adult")
+        groups.append("Adult: 18-64")
     
     # Senior: 65+
     if max_age_val >= 65:
-        groups.append("Senior")
+        groups.append("Senior: 65+")
     
     return groups
 
     
-def get_sites_sorted_by_distance_with_age_gender(trials, user_location):
+def get_sites_sorted_by_distance_with_age_gender(trials, user_location, max_distance=250):
     """Get sites sorted by distance and include age eligibility information"""
     # First get the regular sorted sites
-    sites = get_sites_sorted_by_distance(trials, user_location)
+    sites = get_sites_sorted_by_distance(trials, user_location, max_distance)
+
+    if sites.empty:
+        return sites
     
     # Get unique NCT IDs from the sites
     matching_nct_ids = tuple(sites['nct_id'].unique().tolist())

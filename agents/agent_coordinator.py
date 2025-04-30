@@ -88,11 +88,11 @@ class AgentCoordinator:
         return matching_trials
 
 
-    def find_matching_trials_from_location_with_age_gender(self, trials, location):
+    def find_matching_trials_from_location_with_age_gender(self, trials, location,  max_distance=250):
         """
-        Get matching trial sites for the input location with age information
+        Get matching trial sites for the input location with age and gender information within 250 miles of location
         """
-        matching_trial_sites = trial_filters.get_sites_sorted_by_distance_with_age_gender(trials, location)
+        matching_trial_sites = trial_filters.get_sites_sorted_by_distance_with_age_gender(trials, location, max_distance=max_distance)
         
         return matching_trial_sites
     
