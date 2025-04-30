@@ -86,11 +86,13 @@ class AgentCoordinator:
         return matching_trials
 
 
-    def find_matching_trials_from_location(self,trials,location):
-
-        sorted_trials = trial_filters.get_sites_sorted_by_distance(trials,location)
+    def find_matching_trials_from_location_with_age_gender(self, trials, location):
+        """
+        Get matching trial sites for the input location with age information
+        """
+        matching_trial_sites = trial_filters.get_sites_sorted_by_distance_with_age_gender(trials, location)
         
-        return sorted_trials
+        return matching_trial_sites
     
     
     def get_trial_explanation(self, ssp):
@@ -120,13 +122,18 @@ class AgentCoordinator:
         drug_md = self.knowledge_agent.generate_drug_markdown_from_trial_about(trial_about)
                 
         return drug_md
-    
-
 
 
     def parse_age_string(self, age_string):
         age = trial_filters.parse_age(age_string)
         return age
+    
+    def determine_age_group(self, min_age, max_age):
+        """
+        Determine the age group based on the age value
+        """
+        age_groups = trial_filters.determine_age_groups(min_age, max_age)
+        return age_groups
     
 
 
