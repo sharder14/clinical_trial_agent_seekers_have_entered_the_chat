@@ -167,11 +167,19 @@ class TrialExplainerAgent:
             'state':study_site_pair['state'],
             'zip':study_site_pair['zip'],
         }
-        contact_details={
-            'contact_name':central_contacts.loc[0]['name'],
-            'contact_phone':central_contacts.loc[0]['phone'],
-            'contact_email':central_contacts.loc[0]['email']
+        if not central_contacts.empty:
+            contact_details={
+                'contact_name':central_contacts.loc[0]['name'],
+                'contact_phone':central_contacts.loc[0]['phone'],
+                'contact_email':central_contacts.loc[0]['email']
         }
+        else:
+            contact_details={
+                'contact_name':'Not Currently Available',
+                'contact_phone':'Not Currently Available',
+                'contact_email':'Not Currently Available'
+        }
+
 
         out={
             'title':{

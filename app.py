@@ -19,6 +19,7 @@ import folium
 from streamlit_folium import folium_static
 import random
 import string
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 from agents.agent_coordinator import AgentCoordinator
 from agents.helpers.session_utils import initialize_session_state, go_back_to_results, go_back_to_search
 
@@ -37,10 +38,6 @@ def get_coordinator():
 # Initialize all session state variables
 initialize_session_state()
 
-
-"""
-Gonna clean this up
-"""
 def select_trial_site(site_idx):
     # Get the selected site from filtered sites
     site = st.session_state.filtered_sites.iloc[int(site_idx)]
@@ -63,10 +60,9 @@ def select_trial_site(site_idx):
 
 # SEARCH PAGE
 if st.session_state.page == 'search':
-    st.title("Clinical Trial Agent Seekers have Entered the Chat")
-    st.write("Welcome to the Clinical Trial Search Tool!")
-    st.write("Find clinical trials based on your medical condition and location.")
-    st.write("")
+    st.title("Clinical Trial Agent Seekers Have Entered the Chat")
+    st.write("Welcome to your personal clinical trial search tool!")
+    st.write("Find clinical trials tailored to your medical condition and location.")
     
     # Create a container for centered content
     container = st.container()
@@ -81,150 +77,85 @@ if st.session_state.page == 'search':
     
     with col2:
         st.header("Find Clinical Trials")
-        
-        # Medical condition input
-        condition = st.text_input(
-            "Medical Condition or Disease:",
-            value=st.session_state.condition,
-            placeholder="e.g. Breast Cancer, Alzheimer's, Diabetes",
-            help="Enter a medical condition, disease, or treatment you're interested in"
-        )
-        
-        # Initialize the geolocator
-        geolocator = Nominatim(user_agent="clinical_trial_finder", timeout=10)
 
-        # Initialize location suggestions in session state if they don't exist
-        if 'location_suggestions' not in st.session_state:
-            st.session_state.location_suggestions = []
-        if 'last_typed_location' not in st.session_state:
-            st.session_state.last_typed_location = ""
+        with st.form("search_form", clear_on_submit=False):
+            # Input: medical condition
+            condition = st.text_input(
+                "Medical Condition or Disease:",
+                value=st.session_state.condition,
+                placeholder="e.g. Breast Cancer, Alzheimer's, Diabetes"
+            )
 
-        # Function to handle location input changes
-        def on_location_change():
-            location_input = st.session_state.location_input_field
-            if location_input and location_input != st.session_state.last_typed_location:
-                st.session_state.last_typed_location = location_input
+            # Input: location
+            location = st.text_input(
+                "Your Location:",
+                value=st.session_state.location,
+                placeholder="e.g. Boston, MA or 10001"
+            )
+
+            # Submit button (also triggered by hitting Enter)
+            submitted = st.form_submit_button("Find Trials")
+
+        if submitted:
+            st.session_state.condition = condition
+            st.session_state.location = location
+            with st.spinner("🔍 Searching for clinical trials..."):
                 try:
-                    # Use geolocator with longer timeout to search for location, restricting results to US
-                    location_results = geolocator.geocode(location_input, exactly_one=False, country_codes='US', timeout=10)
-                    if location_results:
-                        # Get address options and store in session state
-                        st.session_state.location_suggestions = [result.address for result in location_results[:5]]
-                    else:
-                        st.session_state.location_suggestions = []
-                except Exception as e:
-                    st.session_state.location_suggestions = []
+                    coordinator = get_coordinator()
 
-        # Location text input with key and on_change callback
-        location = st.text_input(
-            "Your Location:",
-            value=st.session_state.location,
-            placeholder="e.g. Boston, MA or 10001",
-            help="Enter your city, state, or zip code to find nearby trials",
-            key="location_input_field",
-            on_change=on_location_change
-        )
-        
-        # Display suggestions as a dropdown-style interface
-        if st.session_state.location_suggestions:
-            st.write("Select from suggestions:")
-            for i, suggestion in enumerate(st.session_state.location_suggestions):
-                if st.button(suggestion, key=f"loc_button_{i}"):
-                    # When suggestion is clicked, update location
-                    st.session_state.location = suggestion
-                    location = suggestion
-        
-        # Add better help text for location
-        st.caption("Enter a US city, state (e.g., 'Boston, MA')")
-        
-        # Centered search button
-        col_a, col_b, col_c = st.columns([1, 1, 1])
-        with col_b:
-            search_clicked = st.button("Find Trials", key="search_button", use_container_width=True)
-        
-        # Trigger search only when the "Find Trials" button is clicked
-        if search_clicked:
-            if location and condition:
-                if st.session_state.location_input_field != st.session_state.location or st.session_state.condition != condition:
-                    search_clicked = True
-
-        if search_clicked:
-            if condition and location:
-                # Store inputs in session state
-                st.session_state.condition = condition
-                st.session_state.location = location
-                
-                # Show spinner while processing
-                with st.spinner("Searching for clinical trials..."):
+                    # Fix location
                     try:
-                        # Initialize coordinator
-                        coordinator = get_coordinator()
-                        
-                        # Get synonyms for the condition
-                        synonyms = coordinator.get_synonyms(condition)
-                        
-                        # Find matching trials based on synonyms
-                        matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
-                        
-                        # If we have matching trials, find sites by location
-                        if not matching_trials.empty:
-                            try:
-                                sites = coordinator.find_matching_trials_from_location_with_age_gender(matching_trials, location)
-                                
-                                # Process age information for filtering and categorization
-                                # For min age we use 0 for "Not specified"
-                                sites['min_age_val'] = sites['minimum_age'].apply(coordinator.parse_age_string).fillna(0)
-                                
-                                # For max age we use 120 for "Not specified"
-                                sites['max_age_val'] = sites['maximum_age'].apply(coordinator.parse_age_string).fillna(120)
-
-                                # Fill Nones with NA
-                                sites['phase'] = sites['phase'].fillna("N/A")
-
-                                # Normalize phase values
-                                sites['phase'] = sites['phase'].replace({None: 'NA', 'N/A': 'NA'}).fillna('NA')
-                                
-                                # Determine age groups for each trial
-                                sites['age_groups'] = sites.apply(
-                                    lambda row: coordinator.determine_age_group(row['minimum_age'], row['maximum_age']), 
-                                    axis=1
-                                )
-                                
-                                # Store the results
-                                st.session_state.sites = sites
-
-                                st.session_state.filtered_sites = sites.copy()
-                                st.session_state.has_searched = True
-                                
-                                # Store the results
-                                st.session_state.search_results = {
-                                    'condition': condition,
-                                    'location': location,
-                                    'synonyms': synonyms,
-                                    'trials': matching_trials
-                                }
-                                
-                                # Fetch knowledge resources about the condition only once
-                                with st.spinner("Gathering educational resources..."):
-                                    condition_md = coordinator.get_condition_md(condition)
-                                    st.session_state.condition_markdown = condition_md
-                                
-                                # Switch to results page
-                                st.session_state.page = 'results'
-                                st.rerun()
-                                
-                            except ValueError as e:
-                                if "Could not geocode the location" in str(e):
-                                    st.error(f"Location error: {str(e)}")
-                                    st.info("Try using a simpler format like 'City, State' or a ZIP/postal code.")
-                                else:
-                                    st.error(f"An error occurred: {str(e)}")
-                        else:
-                            st.warning(f"No clinical trials found for {condition}. Try a different condition.")
+                        location = coordinator.fix_location(location)
+                        st.session_state.location = location
+                        st.info(f"Interpreted location as: **{location}**")
                     except Exception as e:
-                        st.error(f"An error occurred: {str(e)}")
-            else:
-                st.warning("Please enter both a condition and location to search.")
+                        st.error(f"Location fixer failed: {str(e)}")
+                        st.stop()
+
+                    # Synonyms + Matching trials
+                    synonyms = coordinator.get_synonyms(condition)
+                    matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
+
+                    if not matching_trials.empty:
+                        sites = coordinator.find_matching_trials_from_location_with_age_gender(
+                            matching_trials, location, max_distance=st.session_state.get("max_distance", 250)
+                        )
+
+                        if sites.empty:
+                            st.warning("No trials located in this area. Try searching in a different location.")
+                            st.stop()
+
+                        sites['min_age_val'] = sites['minimum_age'].apply(coordinator.parse_age_string).fillna(0)
+                        sites['max_age_val'] = sites['maximum_age'].apply(coordinator.parse_age_string).fillna(120)
+                        sites['phase'] = sites['phase'].fillna("N/A")
+                        sites['phase'] = sites['phase'].replace({None: 'NA', 'N/A': 'NA'}).fillna('NA')
+
+                        sites['age_groups'] = sites.apply(
+                            lambda row: coordinator.determine_age_group(row['minimum_age'], row['maximum_age']),
+                            axis=1
+                        )
+
+                        st.session_state.sites = sites
+                        st.session_state.filtered_sites = sites.copy()
+                        st.session_state.has_searched = True
+
+                        st.session_state.search_results = {
+                            'condition': condition,
+                            'location': location,
+                            'synonyms': synonyms,
+                            'trials': matching_trials
+                        }
+
+                        # Remove spinner
+                        condition_md = coordinator.get_condition_md(condition)
+                        st.session_state.condition_markdown = condition_md
+
+                        st.session_state.page = 'results'
+                        st.rerun()
+                    else:
+                        st.warning(f"No clinical trials found for {condition}. Try a different condition.")
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
 
 # RESULTS PAGE
 elif st.session_state.page == 'results':
@@ -294,11 +225,11 @@ elif st.session_state.page == 'results':
             else:
                 selected_phase = 'All Phases'
 
-            age_groups = ["Any", "Child", "Adult", "Senior"]
+            age_groups = ["Any", "Child: 0-17", "Adult: 18-64", "Senior: 65+"]
             selected_age_group = st.selectbox(
                 "Age Group:",
                 options=age_groups,
-                index=0,  # Default to "Any" 
+                index=0, 
                 help="Show trials that accept this age group",
                 key="age_group_dropdown"
             )
@@ -309,17 +240,26 @@ elif st.session_state.page == 'results':
         with filter_col2:
             # Gender filter - dropdown
             if 'gender' in sites.columns:
-                genders = sites['gender'].unique().tolist()
+                genders = sites['gender'].dropna().unique().tolist()
+
+                # Standardize case to avoid duplicate 'All'/'ALL'
+                genders = [g.upper() for g in genders]
+
+                # Insert 'ALL' at the top if not already present
+                if 'ALL' not in genders:
+                    genders.insert(0, 'ALL')
+
                 selected_gender = st.selectbox(
                     "Sex:",
-                    options=['All'] + genders,
+                    options=genders,
                     index=0,
                     help="Filter by participant sex eligibility",
                     key="gender_dropdown"
                 )
             else:
-                selected_gender = 'All'
-            
+                selected_gender = 'ALL'
+
+                
         with filter_col3:
             # Recruitment status filter - dropdown
             if 'overall_status' in sites.columns:
@@ -415,7 +355,7 @@ elif st.session_state.page == 'results':
                 after_study_type_count = after_phase_count
             
             # Apply gender filter - handle None values properly
-            if selected_gender != 'All' and 'gender' in filtered_sites.columns:
+            if selected_gender != 'ALL' and 'gender' in filtered_sites.columns:
                 filtered_sites = filtered_sites[
                     (filtered_sites['gender'] == selected_gender) | 
                     ((filtered_sites['gender'].isna()) & (selected_gender == 'None'))
@@ -497,7 +437,12 @@ elif st.session_state.page == 'results':
                 # Create map
                 m = folium.Map(
                     location=map_center, 
-                    zoom_start=zoom_level
+                    zoom_start=zoom_level,
+                    control_scale=False,
+                    zoom_control=False,
+                    dragging=False,
+                    scrollWheelZoom=False,
+                    touchZoom=False   
                 )
 
 
@@ -573,32 +518,9 @@ elif st.session_state.page == 'results':
                 '''
                 # Render the map on the page
                 folium_static(m, width=None, height=500)
-
-                # Show clickable trial site cards under the map
-                st.subheader("Select a Trial:")
-
-                cols = st.columns(4)
-                for i, row in filtered_sites.head(20).reset_index().iterrows():
-                    col_idx = i % 4
-                    with cols[col_idx]:
-                        site_name = row['name'] if 'name' in row and pd.notna(row['name']) else f"Site {i+1}"
-                        if st.button(f"{site_name[:20]}...", key=f"site_btn_{i}"):
-                            select_trial_site(i)
-
                 
                 # Add the legend to the map
                 m.get_root().html.add_child(folium.Element(legend_html))
-                
-                # Create two columns for map and trial details
-                map_col, details_col = st.columns([1, 1])
-
-                                
-                # Display condition information below the columns
-                st.header("About the Condition")
-                if 'condition_markdown' in st.session_state and st.session_state.condition_markdown:
-                    st.markdown(st.session_state.condition_markdown)
-                else:
-                    st.warning("Condition information is not available.")
                 
                 # Display clickable table of filtered trial sites
                 st.subheader("All Trial Sites")
@@ -608,7 +530,7 @@ elif st.session_state.page == 'results':
                 rename_mapping = {}
                 
                 potential_columns = {
-                    'nct_id': 'Trial ID', 
+                    'nct_id': 'nct_id', 
                     'name': 'Facility Name', 
                     'city': 'City', 
                     'state': 'State',
@@ -647,28 +569,116 @@ elif st.session_state.page == 'results':
                     table_col, button_col = st.columns([3, 1])
                     
                     with table_col:
-                        # Display the table
-                        st.dataframe(
-                            display_df, 
-                            hide_index=True,
-                            use_container_width=True
+                        st.write("### Click a row to view trial details")
+
+                        # Reset index and ensure nct_id is included for selection
+                        display_df = filtered_sites.copy().reset_index(drop=True)
+
+                        # Convert lists to strings for display (like age_groups)
+                        if 'age_groups' in display_df.columns:
+                            display_df['age_groups'] = display_df['age_groups'].apply(lambda x: ", ".join(x) if isinstance(x, list) else x)
+
+                        # Build GridOptions
+                        gb = GridOptionsBuilder.from_dataframe(display_df)
+                        gb.configure_selection(selection_mode='single', use_checkbox=True)
+
+                        # Optionally hide internal columns (e.g., nct_id, latitude, longitude)
+                        gb.configure_column('nct_id', hide=True)
+                        if 'latitude' in display_df.columns:
+                            gb.configure_column('latitude', hide=True)
+                        if 'longitude' in display_df.columns:
+                            gb.configure_column('longitude', hide=True)
+
+                        grid_options = gb.build()
+
+                        # Show the AgGrid interactive table
+                        grid_response = AgGrid(
+                            display_df,
+                            gridOptions=grid_options,
+                            update_mode=GridUpdateMode.SELECTION_CHANGED,
+                            height=400,
+                            use_container_width=True,
+                            key="aggrid_trials"
                         )
+
+                        # Get selected row
+                        selected = grid_response['selected_rows']
+                        if selected is not None and len(selected) > 0 and 'nct_id' in selected.columns:
+                            selected_nct_id = selected.iloc[0]['nct_id']
+                            selected_trial = filtered_sites[filtered_sites['nct_id'] == selected_nct_id].iloc[0]
+
+                            # Load trial details
+                            st.session_state.selected_trial_site = selected_trial
+                            coordinator = get_coordinator()
+                            trial_data, trial_md = coordinator.get_trial_explanation(selected_trial)
+                            drug_md = coordinator.get_drug_md(trial_data['about'])
+
+                            st.session_state.selected_trial_markdown = trial_md
+                            st.session_state.selected_drug_markdown = drug_md
+                            st.session_state.page = 'trial_details'
+                            st.rerun()
+
+
+
 
                 else:
                     st.info("No detailed trial site information available to display in table format.")
 
+                # Display condition information below the columns
+                st.header("About the Condition")
+                if 'condition_markdown' in st.session_state and st.session_state.condition_markdown:
+                    st.markdown(st.session_state.condition_markdown)
+                else:
+                    st.warning("Condition information is not available.")
+                
+                # Create two columns for map and trial details
+                map_col, details_col = st.columns([1, 1])
+
+
 # TRIAL DETAILS PAGE
 elif st.session_state.page == 'trial_details':
     # First ensure we have the necessary data
+
     if (st.session_state.selected_trial_site is not None and 
         st.session_state.selected_trial_markdown is not None):
-        
-        site = st.session_state.selected_trial_site
-        
+
         # Back button to return to results
         if st.button("← Back to Search Results"):
             go_back_to_results()
             st.rerun()
+        
+
+        # Show map zoomed on the selected trial site
+        site = st.session_state.selected_trial_site
+
+        if pd.notna(site['latitude']) and pd.notna(site['longitude']):
+            m = folium.Map(
+                location=[site['latitude'], site['longitude']],
+                zoom_start=13,  # Zoom in closer to the site
+                control_scale=False,
+                zoom_control=False,
+                dragging=False,
+                scrollWheelZoom=False,
+                touchZoom=False,
+                double_click_zoom=False
+            )
+
+            popup_html = f"""
+            <strong>{site.get('name', 'Trial Site')}</strong><br>
+            {site.get('city', '')}, {site.get('state', '')}<br>
+            {site.get('nct_id', '')}
+            """
+
+            folium.Marker(
+                [site['latitude'], site['longitude']],
+                popup=popup_html,
+                icon=folium.Icon(color="blue", icon="plus")
+            ).add_to(m)
+
+            folium_static(m, width=None, height=400)
+
+                
+        site = st.session_state.selected_trial_site
         
         # Get site name (with fallback)
         site_name = site['name'] if 'name' in site and pd.notna(site['name']) else 'Clinical Trial Site'
