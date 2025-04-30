@@ -128,6 +128,9 @@ def get_sites_sorted_by_distance(trials, user_location):
     # Calculate distances
     sites['distance'] = haversine(location.latitude, location.longitude, sites['latitude'], sites['longitude'])
 
+    # Drop rows where distance could not be computed
+    sites = sites.dropna(subset=['distance'])
+
     sites = sites.sort_values(by='distance')
     sites.reset_index(drop=True, inplace=True)
 
@@ -210,13 +213,104 @@ def get_trial_details(study_site_pair):
 
 # Helper function to parse age strings into numeric values
 def parse_age(age_string):
-    if pd.isna(age_string) or not age_string:
+    """Parse age string into a numeric value in years."""
+    if pd.isna(age_string) or not age_string or age_string == 'N/A':
         return None
+    
+    parts = age_string.split()
+    if len(parts) < 2:
+        return None
+    
     try:
-        # Extract numeric part from strings like "18 Years" or "N/A"
-        numeric_part = re.search(r'(\d+)', age_string)
-        if numeric_part:
-            return int(numeric_part.group(1))
+        value = float(parts[0])
+        unit = parts[1].lower()
+        
+        # Convert to years
+        if unit.startswith('year'):
+            return value
+        elif unit.startswith('month'):
+            return 0  # Treat as 0 years
+        elif unit.startswith('day'):
+            return 0  # Treat as 0 years
+        elif unit.startswith('week'):
+            return 0  # Treat as 0 years
+        else:
+            return None
+    except (ValueError, IndexError):
         return None
-    except:
-        return None
+    
+
+def determine_age_groups(min_age, max_age):
+    """
+    Determine which age groups a trial belongs to based on min and max ages.
+    Returns a list of applicable age groups.
+    """
+    # Parse ages to integers, handling None values
+    min_age_val = 0 if min_age is None else parse_age(min_age) or 0
+    max_age_val = 120 if max_age is None else parse_age(max_age) or 120
+    
+    groups = []
+    
+    # Child: 0-17
+    if min_age_val <= 17 and max_age_val >= 0:
+        groups.append("Child")
+    
+    # Adult: 18-65
+    if min_age_val <= 65 and max_age_val >= 18:
+        groups.append("Adult")
+    
+    # Senior: 65+
+    if max_age_val >= 65:
+        groups.append("Senior")
+    
+    return groups
+
+    
+def get_sites_sorted_by_distance_with_age_gender(trials, user_location):
+    """Get sites sorted by distance and include age eligibility information"""
+    # First get the regular sorted sites
+    sites = get_sites_sorted_by_distance(trials, user_location)
+    
+    # Get unique NCT IDs from the sites
+    matching_nct_ids = tuple(sites['nct_id'].unique().tolist())
+    
+    # Fetch eligibility data for these trials
+    if len(matching_nct_ids) == 1:
+        # Handle the case of a single NCT ID differently to avoid SQL syntax errors
+        nct_id = matching_nct_ids[0]
+        eligibilities_sql = f"""
+        SELECT nct_id, gender, minimum_age, maximum_age 
+        FROM eligibilities
+        WHERE nct_id = '{nct_id}'
+        """
+    else:
+        eligibilities_sql = f"""
+        SELECT nct_id, gender, minimum_age, maximum_age 
+        FROM eligibilities
+        WHERE nct_id IN {matching_nct_ids}
+        """
+    
+    eligibilities = sql_util.get_table(eligibilities_sql)
+    
+    # Merge the eligibility data with sites
+    sites = sites.merge(eligibilities[['nct_id', 'minimum_age', 'maximum_age', 'gender']], 
+                        on='nct_id', how='left')
+    
+    # Parse age values
+    sites['min_age_val'] = sites['minimum_age'].apply(parse_age).fillna(0)
+    sites['max_age_val'] = sites['maximum_age'].apply(parse_age).fillna(120)
+    sites['gender'] = sites['gender'].fillna('ALL')
+    
+    # Create human-readable age range column
+    sites['age_range'] = sites.apply(
+        lambda row: f"{row['minimum_age'] if pd.notna(row['minimum_age']) else 'Any'} to {row['maximum_age'] if pd.notna(row['maximum_age']) else 'Any'}", 
+        axis=1
+    )
+    
+    # Determine age groups for filtering
+    sites['age_groups'] = sites.apply(
+        lambda row: determine_age_groups(row['minimum_age'], row['maximum_age']), 
+        axis=1
+    )
+    
+    return sites
