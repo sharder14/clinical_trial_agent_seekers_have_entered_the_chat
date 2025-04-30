@@ -31,6 +31,7 @@ import numpy as np
 from agents.synonym_generator import SynonymGeneratorAgent
 from agents.trial_explainer import TrialExplainerAgent
 from agents.knowledge_curator import KnowledgeCuratorAgent
+from agents.location_fixer import LocationFixerAgent
 
 #Load in agent helpers
 from agents.helpers import trial_filters
@@ -45,6 +46,7 @@ class AgentCoordinator:
         self.synonym_agent = SynonymGeneratorAgent()
         self.explainer_agent = TrialExplainerAgent()
         self.knowledge_agent = KnowledgeCuratorAgent()
+        self.location_agent= LocationFixerAgent()
                 
         
     def process_search_request(self, condition, location, filters=None):
@@ -135,6 +137,10 @@ class AgentCoordinator:
         age_groups = trial_filters.determine_age_groups(min_age, max_age)
         return age_groups
     
+    def fix_location(self,input_location):
+
+        return self.location_agent.fix_location(input_location)
+
 
 
 
@@ -166,4 +172,9 @@ display(Markdown(study_md))
 #Now get DRUG MD
 drug_md=coordinator.get_drug_md(study_data['about'])
 display(Markdown(drug_md))
+
+
+#Fix a location
+coordinator.fix_location('PA')
+
 """
