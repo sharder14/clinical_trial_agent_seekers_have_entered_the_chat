@@ -12,6 +12,7 @@ Streamlit app for the front end of the clinical trial search tool.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 from geopy.geocoders import Nominatim
 import pandas as pd
 import numpy as np
@@ -115,11 +116,12 @@ if st.session_state.page == 'search':
                     # Synonyms + Matching trials
                     synonyms = coordinator.get_synonyms(condition)
                     matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
-
+                    
                     if not matching_trials.empty:
                         sites = coordinator.find_matching_trials_from_location_with_age_gender(
                             matching_trials, location, max_distance=st.session_state.get("max_distance", 250)
                         )
+                        sites = sites[sites['country'] == 'United States'].reset_index(drop=True)
 
                         if sites.empty:
                             st.warning("No trials located in this area. Try searching in a different location.")
@@ -389,6 +391,9 @@ elif st.session_state.page == 'results':
         # Display the map section with filtered sites
         st.header("Clinical Trial Locations")
 
+        #Add a small note about the map that there are overlapping markers
+        st.markdown("Note: Some markers may overlap if trial sites are very close together. See the table below for list of sites.")
+
         # If we have filtered search results, display them on the map
         if st.session_state.filtered_sites is not None and not st.session_state.filtered_sites.empty:
             filtered_sites = st.session_state.filtered_sites
@@ -433,17 +438,18 @@ elif st.session_state.page == 'results':
                     user_lat = None
                     user_lon = None
 
-
                 # Create map
                 m = folium.Map(
                     location=map_center, 
                     zoom_start=zoom_level,
                     control_scale=False,
-                    zoom_control=False,
-                    dragging=False,
+                    zoom_control=True,
+                    dragging=True,
                     scrollWheelZoom=False,
-                    touchZoom=False   
+                    touchZoom=False  
+
                 )
+
 
 
                 # Add a red marker for the user's location
@@ -459,16 +465,25 @@ elif st.session_state.page == 'results':
                 epsilon = 0.01  # 0.01 miles = about 50 feet
                 
                 # Add all filtered sites to the map (limit to first 100 for performance)
-                for idx, site in display_sites.iterrows():
+                closest_site_updated = False
+                is_closest = False
+                for idx, site in display_sites[::-1].iterrows():
                     if pd.notna(site['latitude']) and pd.notna(site['longitude']):
                         # Calculate distance safely
                         distance_value = float(site['distance']) if 'distance' in site and pd.notna(site['distance']) else 0.0
                         
                         # Determine if this is one of the closest sites
-                        is_closest = abs(distance_value - min_distance) < epsilon
-                        marker_color = 'green' if is_closest else 'blue'
-                        marker_icon = folium.Icon(color=marker_color, icon='plus' if is_closest else 'info-sign')
-                        
+                        if idx==0:
+                            marker_color = 'green'
+                            marker_icon = folium.Icon(color=marker_color, icon='plus')
+                            closest_site_updated = True
+                            is_closest = True
+                            
+                        else:
+                            marker_color = 'blue'
+                            marker_icon = folium.Icon(color=marker_color, icon='info-sign')
+
+                
                         # Convert age groups to friendly display
                         age_groups_str = ", ".join(site['age_groups']) if 'age_groups' in site else "Any"
                         
@@ -485,13 +500,6 @@ elif st.session_state.page == 'results':
                                 <strong>Phase:</strong> {site['phase'] if 'phase' in site and pd.notna(site['phase']) else 'N/A'}
                             </p>
                             {"<strong>✓ This is one of the closest trial sites</strong>" if is_closest else ""}
-                            <p>
-                                <a href="?selected_trial=X" target="_parent">
-                                    <button style="...">View Trial Details</button>
-                                </a>
-                                    View Trial Details
-                                </button>
-                            </p>
                         </div>
                         """
                                                 
@@ -502,6 +510,8 @@ elif st.session_state.page == 'results':
                             tooltip=f"{'CLOSEST: ' if is_closest else ''}{site['name'] if 'name' in site and pd.notna(site['name']) else 'Site'} ({distance_value:.1f} mi)",
                             icon=marker_icon
                         ).add_to(m)
+
+                    is_closest = False  # Reset for next iteration
                 
                 # Add a legend to the map
                 legend_html = '''
@@ -570,6 +580,9 @@ elif st.session_state.page == 'results':
                     
                     with table_col:
                         st.write("### Click a row to view trial details")
+
+                        #Write a small note that the agents take a bit to load the trial details
+                        st.markdown("Note: Clicking a row may take a moment to load trial details as the agents process the request.")
 
                         # Reset index and ensure nct_id is included for selection
                         display_df = filtered_sites.copy().reset_index(drop=True)
@@ -672,7 +685,7 @@ elif st.session_state.page == 'trial_details':
             folium.Marker(
                 [site['latitude'], site['longitude']],
                 popup=popup_html,
-                icon=folium.Icon(color="blue", icon="plus")
+                icon=folium.Icon(color="green", icon="plus")
             ).add_to(m)
 
             folium_static(m, width=None, height=400)
