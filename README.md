@@ -31,20 +31,14 @@ An intelligent agent-powered system that connects patients with relevant clinica
 - Find support organizations and communities
 - See the bigger picture of research in your condition
 
-### 4. Filter System That Actually Makes Sense
-- Study Phase (I, II, III, IV)
-- Type of intervention (Drug, Device, Procedure, etc.)
-- Recruitment status
-- Age and gender eligibility
-- And more...
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Streamlit
-- **Data Source**: AACT Database (ClinicalTrials.gov)
+- **Data Source**: [AACT Database](https://aact.ctti-clinicaltrials.org/), [DailyMed](https://dailymed.nlm.nih.gov/dailymed/),[Medline](https://medlineplus.gov/) 
 - **Geospatial**: GeoPy
 - **Intelligent Agents**: Azure Open AI 
-- **Visualization**: Folium, Plotly
+- **Visualization**: Folium
 - **Deployment**: Docker, Azure Container Apps
 
 ## 👩‍💻 Local Development
@@ -61,6 +55,9 @@ An intelligent agent-powered system that connects patients with relevant clinica
 git clone https://github.com/sharder14/clinical_trial_agent_seekers_have_entered_the_chat.git
 cd clinical_trial_agent_seekers_have_entered_the_chat
 
+#Create a data folder
+mkdir data
+
 # Set up environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -69,6 +66,9 @@ pip install -r requirements.txt
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your credentials
+
+#To generate the synonyms data file 
+python scripts/study_condition_embeddings_init.py #On Windows scripts\study_condition_embeddings_init.py
 
 # Run the application
 streamlit run app.py
@@ -84,14 +84,7 @@ Our system uses three specialized agents:
 
 ## 🚀 Deployment
 
-The application is containerized for easy deployment:
-
-```bash
-docker build -t trial-agent-seekers:latest .
-docker run -p 8501:8501 trial-agent-seekers:latest
-```
-
-For production deployment, we use Azure Container Apps for scalability and reliability.
+The deployment to Azure Container Apps is currently in progress. For information about endpoints or deployment status, please contact the owners of this repository.
 
 ## 🤝 Contributing
 

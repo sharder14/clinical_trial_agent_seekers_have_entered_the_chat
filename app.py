@@ -30,6 +30,10 @@ st.set_page_config(
     page_title="Clinical Trial Agent Seekers Have Entered the Chat",
     layout="wide"
 )
+#Add link to the github repo on the top right corner
+st.markdown(
+"[Checkout the github repo!](https://github.com/sharder14/clinical_trial_agent_seekers_have_entered_the_chat/tree/master)"
+)
 
 # Initialize the coordinator once when the app starts
 @st.cache_resource
@@ -107,11 +111,18 @@ if st.session_state.page == 'search':
                     # Fix location
                     try:
                         location = coordinator.fix_location(location)
+                        if location == '-1':
+                            #Throw an error if location fixer fails
+                            st.error("Invalid location. Please enter a valid U.S. city, state, or zip code.")
+                            st.spinner.empty()  # Remove spinner
+                            st.stop()
                         st.session_state.location = location
                         st.info(f"Interpreted location as: **{location}**")
                     except Exception as e:
                         st.error(f"Location fixer failed: {str(e)}")
+                        st.spinner.empty()  # Remove spinner
                         st.stop()
+
 
                     # Synonyms + Matching trials
                     synonyms = coordinator.get_synonyms(condition)
@@ -157,7 +168,7 @@ if st.session_state.page == 'search':
                     else:
                         st.warning(f"No clinical trials found for {condition}. Try a different condition.")
                 except Exception as e:
-                    st.error(f"An error occurred: {str(e)}")
+                    st.error(f"An error occurred: {str(e)}, perhps try a different condition or location?")
 
 # RESULTS PAGE
 elif st.session_state.page == 'results':
@@ -615,21 +626,22 @@ elif st.session_state.page == 'results':
                         )
 
                         # Get selected row
-                        selected = grid_response['selected_rows']
-                        if selected is not None and len(selected) > 0 and 'nct_id' in selected.columns:
-                            selected_nct_id = selected.iloc[0]['nct_id']
-                            selected_trial = filtered_sites[filtered_sites['nct_id'] == selected_nct_id].iloc[0]
+                        with st.spinner("Loading trial details..."):
+                            selected = grid_response['selected_rows']
+                            if selected is not None and len(selected) > 0 and 'nct_id' in selected.columns:
+                                selected_nct_id = selected.iloc[0]['nct_id']
+                                selected_trial = filtered_sites[filtered_sites['nct_id'] == selected_nct_id].iloc[0]
 
-                            # Load trial details
-                            st.session_state.selected_trial_site = selected_trial
-                            coordinator = get_coordinator()
-                            trial_data, trial_md = coordinator.get_trial_explanation(selected_trial)
-                            drug_md = coordinator.get_drug_md(trial_data['about'])
+                                # Load trial details
+                                st.session_state.selected_trial_site = selected_trial
+                                coordinator = get_coordinator()
+                                trial_data, trial_md = coordinator.get_trial_explanation(selected_trial)
+                                drug_md = coordinator.get_drug_md(trial_data['about'])
 
-                            st.session_state.selected_trial_markdown = trial_md
-                            st.session_state.selected_drug_markdown = drug_md
-                            st.session_state.page = 'trial_details'
-                            st.rerun()
+                                st.session_state.selected_trial_markdown = trial_md
+                                st.session_state.selected_drug_markdown = drug_md
+                                st.session_state.page = 'trial_details'
+                                st.rerun()
 
 
 
