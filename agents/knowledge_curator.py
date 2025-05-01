@@ -1,26 +1,33 @@
 """
-Agent that curates knowledge of the condition and drug being studied...
+knowledge_curator.py
+
+This module defines the `KnowledgeCuratorAgent` class, which is responsible for enriching the clinical trial user experience
+by generating patient-friendly educational content about both medical conditions and drugs referenced in clinical trials.
+
+Core Methods:
+- curate_medical_page(condition): Generates a readable, structured summary and essential links for a given condition.
+- generate_drug_markdown_from_trial_about(trial_about_text): Determines if a trial is drug-related and creates appropriate Markdown content.
+- curate_drug_page(drug_name): Retrieves and summarizes consumer-oriented drug information from trusted sources like DailyMed.
 """
+
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
-import pandas as pd
-from utils import sql_util, openai_util
+from utils import openai_util
 import json
+
+
 #Load in agent helpers
-from agents.helpers import trial_filters, knowledge_web
-#from importlib import reload
-#reload(trial_filters)
-from typing import Dict
-from IPython.display import display
-from IPython.display import Markdown
+from agents.helpers import knowledge_web
 
 azure_model_name = "gpt-4o-mini"
 azure_deployment = "gpt-4o-mini"

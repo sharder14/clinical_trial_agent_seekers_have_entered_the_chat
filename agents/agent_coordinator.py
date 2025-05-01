@@ -1,14 +1,14 @@
 """
-The Agent Coordinator would serve as the orchestration layer for your intelligent components, managing the flow of information and tasks between the specialized agents. 
+agent_coordinator.py
 
-AgentCoordinator
-├── initialize_session()
-├── process_search_request(condition, location)
-├── generate_synonyms(condition)
-├── find_matching_trials(synonyms, location)
-├── explain_trial(trial_id)
-├── gather_knowledge_resources(condition, synonyms)
+This module defines the AgentCoordinator class, which acts as the central orchestrator for the clinical trial assistant application. 
+It integrates multiple specialized agents to perform key tasks in response to user input. The AgentCoordinator is responsible for:
 
+Agents used:
+- SynonymGeneratorAgent: expands medical condition terms for broader trial matching.
+- TrialExplainerAgent: creates structured, patient-facing summaries of clinical trials.
+- KnowledgeCuratorAgent: extracts educational material from trusted medical sources.
+- LocationFixerAgent: interprets and standardizes free-text locations.
 """
 
 
@@ -20,12 +20,6 @@ base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
-#File specific imports
-import pandas as pd
-from utils import sql_util, openai_util
-import json
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 #Load in specialized agents
 from agents.synonym_generator import SynonymGeneratorAgent
@@ -35,9 +29,6 @@ from agents.location_fixer import LocationFixerAgent
 
 #Load in agent helpers
 from agents.helpers import trial_filters
-from IPython.display import display, Markdown
-#from importlib import reload
-#reload(trial_filters)
 
 
 class AgentCoordinator:

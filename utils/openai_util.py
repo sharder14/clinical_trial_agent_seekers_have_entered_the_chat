@@ -8,12 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #File specific imports
-from openai import AzureOpenAI, OpenAI
-import json
-from azure.ai.inference import ChatCompletionsClient
-from azure.ai.inference.models import SystemMessage, UserMessage
-from azure.core.credentials import AzureKeyCredential
-
+from openai import AzureOpenAI
 
 azure_endpoint = os.getenv('azure_openai_endpoint')
 azure_subscription_key = os.getenv('azure_openai_key')

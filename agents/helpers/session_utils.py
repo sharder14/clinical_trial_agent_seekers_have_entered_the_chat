@@ -1,3 +1,17 @@
+"""
+session_utils.py
+
+Session state management and navigation helpers for the Streamlit clinical trial search app.
+
+Functions:
+- initialize_session_state(): Initializes all session state keys with default values used throughout the app.
+- go_back_to_search(): Resets the view to the search page and clears search status.
+- go_back_to_results(): Switches the current view to the results page without modifying state data.
+
+This module helps maintain application state across user interactions and page transitions.
+"""
+
+
 import streamlit as st
 
 def initialize_session_state():

@@ -1,3 +1,13 @@
+"""
+knowledge_eda.py
+
+This is a whiteboard script for testing and developing the KnowledgeCuratorAgent. 
+It walks through the full flow of retrieving medical and drug content from trusted public sources 
+(MedlinePlus and DailyMed), cleaning the data, and summarizing it using OpenAI function-calling APIs.
+"""
+
+
+
 import os
 import sys
 from dotenv import load_dotenv
@@ -7,8 +17,6 @@ base_dir = os.getenv('base_dir')
 os.chdir(base_dir)
 sys.path.append(base_dir)
 #File specific imports
-import pandas as pd
-import numpy as np
 from utils import sql_util, openai_util
 import json
 from agents.agent_coordinator import AgentCoordinator

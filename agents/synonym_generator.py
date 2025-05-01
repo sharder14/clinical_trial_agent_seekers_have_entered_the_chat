@@ -1,18 +1,27 @@
 """
-Agent that generates synonyms for a disease name using the OpenAI API.
+synonym_generator.py
+
+This module defines the SynonymGeneratorAgent, an agent that expands disease or condition names into clinically relevant synonyms 
+using OpenAI's function-calling API.
+
+Key Method:
+- generate_synonyms(disease_description): Returns up to 10 related disease terms to improve the reach and accuracy of clinical trial matching.
 """
+
+
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
-import pandas as pd
-from utils import sql_util, openai_util
+from utils import openai_util
 import json
 
 

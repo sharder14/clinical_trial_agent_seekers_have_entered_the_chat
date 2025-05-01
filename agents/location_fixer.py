@@ -1,18 +1,25 @@
 """
-Agent that takes in free text location and converts it to United States best match location
+location_fixer.py
+
+This module defines the `LocationFixerAgent` class, which standardizes and corrects free-text location inputs provided by users.
+
+Core Method:
+- fix_location(location_text): Accepts a free-text location input and returns a corrected, standardized U.S. location or '-1' if invalid.
 """
+
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
-import pandas as pd
-from utils import sql_util, openai_util
+from utils import openai_util
 import json
 
 

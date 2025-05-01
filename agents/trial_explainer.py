@@ -1,28 +1,37 @@
 """
-Agent that explains the trials
+trial_explainer.py
+
+This module defines the `TrialExplainerAgent` class, which is responsible for generating structured, patient-friendly explanations 
+of clinical trials using structured data retrieved from the AACT database.
+
+Core Methods:
+- explain_trial(study_site_pair): Returns a structured explanation dictionary for a trial at a given site.
+- generate_trial_markdown(trial_data): Converts the structured explanation into clean, readable Markdown with patient-friendly formatting.
 """
+
+
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
-import pandas as pd
-from utils import sql_util, openai_util
+from utils import openai_util
 import json
+
 #Load in agent helpers
 from agents.helpers import trial_filters
-#from importlib import reload
-#reload(trial_filters)
+
 
 
 azure_model_name = "gpt-4o-mini"
 azure_deployment = "gpt-4o-mini"
-#github_model_name = "openai/gpt-4o-mini"
 
 class TrialExplainerAgent:
     def __init__(self):

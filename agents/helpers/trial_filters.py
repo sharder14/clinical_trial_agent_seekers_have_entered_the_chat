@@ -1,19 +1,32 @@
 """
-This is a module that contains functions to filter clinical trial data based on various criteria.
+trial_filters.py
+
+This module contains utility functions to filter and retrieve clinical trial data based on condition similarity,
+geographic distance, age eligibility, and trial characteristics.
+
+Key Functions:
+- get_relevant_studies_from_conditions(): Uses sentence embedding similarity to identify trials matching input conditions.
+- get_sites_sorted_by_distance(): Finds clinical trial sites geographically close to a user's location.
+- get_sites_sorted_by_distance_with_age_gender(): Adds age and gender filtering on top of distance-based site filtering.
+- get_trial_details(): Retrieves detailed metadata (design, eligibility, outcomes, contacts) for a specific trial.
+- parse_age(): Converts age strings (e.g. "18 Years") into numeric values.
+- determine_age_groups(): Categorizes trials by age eligibility groups (Child, Adult, Senior).
 """
+
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
 import pandas as pd
-from utils import sql_util, openai_util
-import json
+from utils import sql_util
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -21,7 +34,6 @@ import torch
 from geopy.geocoders import Nominatim
 import random
 import string
-import re
 
 # Check if GPU is available
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
