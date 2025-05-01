@@ -79,8 +79,12 @@ streamlit run app.py
 Our system uses three specialized agents:
 
 1. **Synonym Generator Agent** - Expands condition terms to relevant medical equivalents
+2. **Location Fixer Agent** - Generates / Fixes User input string locations to accurate United States City, State 
 2. **Trial Explainer Agent** - Translates complex trial information into accessible language
 3. **Knowledge Curator Agent** - Assembles condition-specific educational resources
+
+![Architecture Diagram](architecture_diagram.png)
+
 
 ## 🚀 Deployment
 
@@ -101,8 +105,9 @@ MIT License - See LICENSE file for details.
 
 ## 📣 Acknowledgements
 
-- AACT Database
-- NIH and MedlinePlus for their open healthcare resources
+- Aggregate Analysis of ClinicalTrials.gov (AACT) Database. Clinical Trials Transformation Initiative (CTTI). Available at: https://aact.ctti-clinicaltrials.org/
+- DailyMed https://dailymed.nlm.nih.gov/dailymed/
+- MedlinePlus https://medlineplus.gov/
 
 ---
 
