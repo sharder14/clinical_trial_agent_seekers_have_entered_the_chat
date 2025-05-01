@@ -152,10 +152,14 @@ condition="MS"
 synonyms = coordinator.get_synonyms(condition)
 #Now get matching trials for the synonyms
 matching_trials = coordinator.find_matching_trials_from_synonyms(synonyms)
+matching_trials
 #Now get matching trial sites for the input location
 location="Allentown, PA"
-matching_trial_sites = coordinator.find_matching_trials_from_location(matching_trials,location)
+matching_trial_sites = coordinator.find_matching_trials_from_location_with_age_gender(matching_trials,location)
 matching_trial_sites
+#Restrict Country to United States
+matching_trial_sites = matching_trial_sites[matching_trial_sites['country'] == 'United States'].reset_index(drop=True)
+
 #Get condition md one once it'll persist over all studies
 condition_md=coordinator.get_condition_md(condition)
 display(Markdown(condition_md))
