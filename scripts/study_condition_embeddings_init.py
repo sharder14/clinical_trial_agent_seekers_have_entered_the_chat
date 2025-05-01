@@ -1,4 +1,6 @@
 """
+study_condition_embeddings_init.py
+
 Script that initializes the study condition embeddings and also updates the embeddings when new rows are added to the database.
 """
 
@@ -13,7 +15,6 @@ os.chdir(base_dir)
 sys.path.append(base_dir)
 import pandas as pd
 from utils import sql_util
-import json
 from sentence_transformers import SentenceTransformer
 import torch
 

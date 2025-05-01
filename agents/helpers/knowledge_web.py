@@ -1,27 +1,26 @@
 """
-Helper functions for knowledge curator agent
+knowledge_web.py
 
-For the input condition we want to get the relevant text from medlineplus
+This module provides helper functions for the Knowledge Curator Agent to retrieve and clean medical information
+about conditions and drugs from trusted public sources.
 
-For the given study...and extracted drug navigate to the appropriate dailymed page and extract text
-
-
+Functions:
+- get_condition_page(condition): Fetches and extracts simplified textual content about a medical condition from MedlinePlus by simulating a search and cleaning the resulting HTML page.
+- get_drug_page(drug): Searches for a consumer-friendly drug label on DailyMed and extracts readable content from the label's page, removing navigation and extraneous elements.
 """
 
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
-import pandas as pd
-import numpy as np
-from utils import sql_util, openai_util
-import json
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs 

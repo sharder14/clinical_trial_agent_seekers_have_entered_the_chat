@@ -1,10 +1,10 @@
 """
-This script performs exploratory data analysis (EDA) on how to extract synonyms from a given input disease/condition name.
+synonyms_eda.py
 
-See study_condition_embeddings_init.py for the script that initializes the study condition embeddings and also updates the embeddings when new rows are added to the database.
-
-Run that file first to create the embeddings and then run this file to perform EDA on the synonyms.
+This script explores how to extract and apply synonyms for a disease name using OpenAI and sentence similarity, 
+to identify relevant clinical trials. Run the condition embeddings init script first.
 """
+
 
 
 import os

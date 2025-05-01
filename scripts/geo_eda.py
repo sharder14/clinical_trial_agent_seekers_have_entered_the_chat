@@ -1,9 +1,10 @@
 """
-Given an nct_id find the sites associated with it and their locations
+geo_eda.py
 
-Given a location, sort the trials by distance from that location
-
+This is a whiteboard script for exploring how to find clinical trial sites for a set of NCT IDs 
+and sort them by distance from a given user location. Useful for testing geospatial trial filtering logic.
 """
+
 
 import os
 import sys
@@ -14,10 +15,8 @@ base_dir = os.getenv('base_dir')
 os.chdir(base_dir)
 sys.path.append(base_dir)
 #File specific imports
-import pandas as pd
 import numpy as np
-from utils import sql_util, openai_util
-import json
+from utils import sql_util
 from agents.agent_coordinator import AgentCoordinator
 
 

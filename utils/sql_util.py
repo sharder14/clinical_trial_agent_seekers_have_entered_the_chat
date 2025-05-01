@@ -4,7 +4,6 @@ Utility functions for SQL queries and database connections to AACT database.
 
 
 import os
-import sys
 from dotenv import load_dotenv
 load_dotenv()
 

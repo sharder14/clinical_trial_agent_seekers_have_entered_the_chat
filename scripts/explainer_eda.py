@@ -1,45 +1,21 @@
 """
-Given a nct_id get the relevant information about the trial
+explainer_eda.py
 
-1. trial name then link to study on clinical trial .gov
-2. What is this study about
-3. Who can join this study
-4. What happens in this study (join the study treatment and how long will it last to this part)
-5. Who to contact, and site details
-
-Relevent data from the db for each piece above:
-
-
-1. studies table
-    columns: nct_id, brief_title and link to study on clinical trial .gov
-
-2. studies
-    official_title, brief_summary, 
-   optional: outcomes table with primary outcome
-
-3. eligibilities
-    all columns
-
-4. Designs
-    allocation, intervention_model, masking, primary_purpose
-   Design_groups
-    group_type, title, description
-   Interventions
-
-5. central_contacts
-    all columns from central_contacts table
-   facilities 
-
+This script is a whiteboard for the TrialExplainerAgent — it walks through the process of pulling trial data from the AACT database 
+and generating a patient-friendly summary using OpenAI function calling. Used for testing and development.
 """
+
 
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 base_dir = os.getenv('base_dir')
 #Change the working directory to the base directory
 os.chdir(base_dir)
 sys.path.append(base_dir)
+
 #File specific imports
 import pandas as pd
 from utils import sql_util, openai_util
